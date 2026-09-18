@@ -1,0 +1,25 @@
+services:
+  database:
+    image: postgres:16-alpine
+    container_name: bugpilot-db
+
+    environment:
+      POSTGRES_USER: bugpilot
+      POSTGRES_PASSWORD: bugpilot_dev
+      POSTGRES_DB: bugpilot
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - bugpilot_postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bugpilot -d bugpilot"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  bugpilot_postgres_data:
