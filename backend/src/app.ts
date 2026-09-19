@@ -1,14 +1,20 @@
 import express from "express";
 import cors from "cors";
+
 import { pool } from "./config/database";
+
 import userRoutes from "./routes/user.routes";
 import authRoutes from "./routes/auth.routes";
+import projectRoutes from "./routes/project.routes";
+import bugRoutes from "./routes/bug.routes";
 
 const app = express();
 
+// Global middleware
 app.use(cors());
 app.use(express.json());
 
+// Health check
 app.get("/api/health", async (_req, res) => {
   try {
     await pool.query("SELECT 1");
@@ -18,6 +24,7 @@ app.get("/api/health", async (_req, res) => {
       service: "bugpilot-api",
       database: "connected"
     });
+
   } catch (error) {
     console.error("Database health check failed:", error);
 
@@ -29,6 +36,10 @@ app.get("/api/health", async (_req, res) => {
   }
 });
 
+// API routes
 app.use("/api/users", userRoutes);
-app.use("/api/auth", authRoutes); 
+app.use("/api/auth", authRoutes);
+app.use("/api/projects", projectRoutes);
+app.use("/api/bugs", bugRoutes);
+
 export default app;

@@ -6,3 +6,22 @@ CREATE TABLE IF NOT EXISTS users (
     role VARCHAR(20) NOT NULL CHECK (role IN ('ADMIN', 'QA', 'DEVELOPER')),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS projects (
+    id SERIAL PRIMARY KEY,
+
+    name VARCHAR(150) NOT NULL,
+
+    description TEXT,
+
+    created_by INTEGER NOT NULL,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_project_creator
+        FOREIGN KEY (created_by)
+        REFERENCES users(id)
+        ON DELETE RESTRICT
+);
