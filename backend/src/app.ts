@@ -1,5 +1,7 @@
 import express from "express";
 import cors from "cors";
+import testCaseRoutes from "./routes/test-case.routes"; 
+import testRunRoutes from "./routes/test-run.routes";
 
 import { pool } from "./config/database";
 
@@ -41,5 +43,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/bugs", bugRoutes);
+app.use("/api/test-cases", testCaseRoutes);
+app.use("/api/test-runs", testRunRoutes);
 
 export default app;
