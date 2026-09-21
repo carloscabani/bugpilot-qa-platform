@@ -1,4 +1,9 @@
 services:
+
+  # =========================
+  # DATABASE
+  # =========================
+
   database:
     image: postgres:16-alpine
     container_name: bugpilot-db
@@ -9,17 +14,137 @@ services:
       POSTGRES_DB: bugpilot
 
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
 
     volumes:
       - bugpilot_postgres_data:/var/lib/postgresql/data
-      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
 
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U bugpilot -d bugpilot"]
+      test:
+        - CMD-SHELL
+        - pg_isready -U bugpilot -d bugpilot
+
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
+
+    restart: unless-stopped
+
+
+  # =========================
+  # INTELLIGENCE ENGINE
+  # =========================
+
+  intelligence:
+    build:
+      context: ./intelligence-engine
+
+    container_name: bugpilot-intelligence
+
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
+
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+    restart: unless-stopped
+
+
+  # =========================
+  # DATABASE MIGRATIONS
+  # =========================
+
+  migrations:
+    build:
+      context: ./backend
+
+    command:
+      - node
+      - dist/scripts/migrate.js
+
+    env_file:
+      - ./backend/.env
+
+    environment:
+      DB_HOST: database
+      DB_PORT: 5432
+
+    volumes:
+      - ./database/migrations:/database/migrations:ro
+
+    depends_on:
+      database:
+        condition: service_healthy
+
+    restart: "no"
+
+
+  # =========================
+  # BACKEND
+  # =========================
+
+  backend:
+    build:
+      context: ./backend
+
+    container_name: bugpilot-backend
+
+    env_file:
+      - ./backend/.env
+
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+
+      DB_HOST: database
+      DB_PORT: 5432
+
+      INTELLIGENCE_URL: http://intelligence:8000
+
+    ports:
+      - "127.0.0.1:3000:3000"
+
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+
+      intelligence:
+        condition: service_healthy
+
+    restart: unless-stopped
+
+
+  # =========================
+  # FRONTEND
+  # =========================
+
+  frontend:
+    build:
+      context: ./frontend
+
+      args:
+        VITE_API_URL: /api
+
+    container_name: bugpilot-frontend
+
+    ports:
+      - "127.0.0.1:5173:80"
+
+    depends_on:
+      - backend
+
+    restart: unless-stopped
+
+
+# =========================
+# PERSISTENT VOLUMES
+# =========================
 
 volumes:
   bugpilot_postgres_data:

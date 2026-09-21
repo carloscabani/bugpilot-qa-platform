@@ -3,11 +3,13 @@
   "version": "1.0.0",
   "main": "dist/server.js",
   "scripts": {
-    "dev": "tsx watch src/server.ts",
-    "build": "tsc",
-    "start": "node dist/server.js",
-    "db:migrate": "tsx src/scripts/migrate.ts"
-  },
+  "dev": "tsx watch src/server.ts",
+  "build": "tsc",
+  "start": "node dist/server.js",
+  "db:migrate": "tsx src/scripts/migrate.ts",
+  "test": "vitest run",
+  "test:watch": "vitest"
+},
   "keywords": [],
   "author": "",
   "license": "ISC",
@@ -27,7 +29,10 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^26.6.1",
     "@types/pg": "^8.23.1",
+    "@types/supertest": "^7.2.1",
+    "supertest": "^7.2.2",
     "tsx": "^4.23.13",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.1"
   }
 }

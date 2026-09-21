@@ -10,6 +10,9 @@ import {
 import api from "../services/api";
 import ResourceForm from "../components/ResourceForm";
 import BugActions from "../components/BugActions"; 
+import QAForm from "../components/QAForm";
+import BugHistory from "../components/BugHistory";
+import BugAnalysis from "../components/BugAnalysis";
 
 type Resource =
   | "projects"
@@ -44,6 +47,9 @@ interface ResourceItem {
 
   assigned_to?: number | null;
   assignee_name?: string | null;
+
+  test_case_title?: string;
+  executor_name?: string;
 }
 
 
@@ -99,6 +105,29 @@ export default function ResourcePage({
   const [error, setError] = useState("");
  
   const [refreshKey, setRefreshKey] = useState(0);
+
+  const [selectedBug, setSelectedBug] = useState<{
+  id: number;
+  title: string;
+} | null>(null);
+
+
+const [selectedAnalysisBug, setSelectedAnalysisBug] =
+  useState<{
+    id: number;
+    title: string;
+  } | null>(null);
+
+const storedUser = sessionStorage.getItem("bugpilot_user");
+
+const currentUser = storedUser
+  ? JSON.parse(storedUser)
+  : null;
+
+const canAnalyze =
+  currentUser?.role === "ADMIN" ||
+  currentUser?.role === "QA";
+
 
   useEffect(() => {
 
@@ -183,6 +212,27 @@ export default function ResourcePage({
 
   )}
 
+  {(
+   resource === "test-cases" ||
+   resource === "test-runs"
+ ) && (
+
+  <QAForm
+
+    resource={resource}
+
+    onCreated={() => {
+
+      setRefreshKey(
+        previous => previous + 1
+      );
+
+    }}
+
+  />
+
+)}
+
 </div>
 
 
@@ -259,6 +309,14 @@ export default function ResourcePage({
                             <th>Actions</th>
                         )}
 
+                        {resource === "bugs" && (
+                            <th>History</th>
+                        )}
+                         
+                         {resource === "bugs" && canAnalyze && (
+                            <th>Intelligence</th>
+                  )}
+
                   </tr>
 
                 </thead>
@@ -278,6 +336,7 @@ export default function ResourcePage({
 
                         {item.name ||
                           item.title ||
+                           item.test_case_title ||
                           `Record ${item.id}`}
 
                       </td>
@@ -325,27 +384,68 @@ export default function ResourcePage({
 
                       </td>
 
-                      {resource === "bugs" && (
+                      {/* BUG ACTIONS */}
 
-                    <td>
+{resource === "bugs" && (
 
-                        <BugActions
+  <td>
 
-                            bugId={item.id}
-
-                            status={item.status || "OPEN"}
-
-                            assignedTo={item.assigned_to ?? null}
-
-                            onUpdated={() => {
-
-                                setRefreshKey(
-                                    previous => previous + 1
-                            );
-
-                }}
-
+    <BugActions
+      bugId={item.id}
+      status={item.status || "OPEN"}
+      assignedTo={item.assigned_to ?? null}
+      onUpdated={() => {
+        setRefreshKey(previous => previous + 1);
+      }}
     />
+
+  </td>
+
+)}
+
+
+{/* BUG HISTORY */}
+
+{resource === "bugs" && (
+
+  <td>
+
+    <button
+      type="button"
+      className="history-button"
+      onClick={() => {
+        setSelectedBug({
+          id: item.id,
+          title: item.title || "Untitled Bug"
+        });
+      }}
+    >
+      View History
+    </button>
+
+  </td>
+)}
+
+{resource === "bugs" && canAnalyze &&(
+
+  <td>
+
+    <button
+      type="button"
+      className="analysis-button"
+      onClick={() => {
+
+        setSelectedAnalysisBug({
+          id: item.id,
+          title: item.title || "Untitled Bug"
+        });
+
+      }}
+    >
+
+      Analyze Priority
+
+    </button>
 
   </td>
 
@@ -366,6 +466,42 @@ export default function ResourcePage({
         </div>
 
       )}
+
+
+{selectedBug && (
+
+  <BugHistory
+
+    bugId={selectedBug.id}
+
+    bugTitle={selectedBug.title}
+
+    onClose={() => {
+      setSelectedBug(null);
+    }}
+
+  />
+
+)}
+
+
+{selectedAnalysisBug && (
+
+  <BugAnalysis
+
+    bugId={selectedAnalysisBug.id}
+
+    bugTitle={selectedAnalysisBug.title}
+
+    onClose={() => {
+
+      setSelectedAnalysisBug(null);
+
+    }}
+
+  />
+
+)}
 
     </main>
 

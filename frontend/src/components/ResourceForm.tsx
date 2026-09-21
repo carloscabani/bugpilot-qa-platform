@@ -241,24 +241,30 @@ export default function ResourceForm({
 
                 <>
 
-                  <label>Project Name</label>
+                  <label htmlFor="project-name">
+                    Project Name
+                    </label>
 
-                  <input
-                    name="name"
-                    value={form.name}
-                    onChange={updateField}
-                    required
-                    maxLength={150}
-                  />
+                        <input
+                            id="project-name"
+                            name="name"
+                            value={form.name}
+                            onChange={updateField}
+                            required
+                            maxLength={150}
+                    />
 
-                  <label>Description</label>
+                  <label htmlFor="project-description">
+                        Description
+                    </label>
 
-                  <textarea
-                    name="description"
-                    value={form.description}
-                    onChange={updateField}
-                    rows={4}
-                  />
+<textarea
+  id="project-description"
+  name="description"
+  value={form.description}
+  onChange={updateField}
+  rows={4}
+/>
 
                 </>
 
