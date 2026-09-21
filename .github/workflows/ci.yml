@@ -166,3 +166,182 @@ jobs:
           docker build \
             -t bugpilot-intelligence:ci \
             ./intelligence-engine
+
+  e2e:
+
+    name: Playwright E2E Tests
+
+    runs-on: ubuntu-latest
+
+    needs:
+      - backend
+      - frontend
+      - intelligence
+      - docker
+
+    services:
+
+      postgres:
+
+        image: postgres:16-alpine
+
+        env:
+          POSTGRES_USER: bugpilot
+          POSTGRES_PASSWORD: ci_test_password
+          POSTGRES_DB: bugpilot_test
+
+        ports:
+          - 5432:5432
+
+        options: >-
+          --health-cmd "pg_isready -U bugpilot -d bugpilot_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+  env:
+
+      NODE_ENV: test
+
+      PORT: 3000
+
+      DB_HOST: localhost
+      DB_PORT: 5432
+
+      DB_USER: bugpilot
+      DB_PASSWORD: ci_test_password
+      DB_NAME: bugpilot_test
+
+      INTELLIGENCE_URL: http://127.0.0.1:8000
+
+      E2E_ADMIN_EMAIL: e2e-admin@bugpilot.test
+      E2E_DEV_EMAIL: e2e-developer@bugpilot.test
+
+  steps:
+
+      # =========================
+      # CHECKOUT
+      # =========================
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+
+      # =========================
+      # NODE
+      # =========================
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+
+      # =========================
+      # TEST CREDENTIALS
+      # =========================
+
+      - name: Generate test credentials
+        run: |
+          echo "E2E_ADMIN_PASSWORD=$(openssl rand -hex 16)" >> "$GITHUB_ENV"
+          echo "E2E_DEV_PASSWORD=$(openssl rand -hex 16)" >> "$GITHUB_ENV"
+          echo "JWT_SECRET=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
+
+
+      # =========================
+      # BACKEND
+      # =========================
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci
+
+
+      - name: Build backend
+        working-directory: backend
+        run: npm run build
+
+
+      # =========================
+      # DATABASE
+      # =========================
+
+      - name: Initialize test database
+        working-directory: backend
+        run: node dist/scripts/init-test-db.js
+
+
+      - name: Run database migrations
+        working-directory: backend
+        run: node dist/scripts/migrate.js
+
+
+      - name: Seed test users
+        working-directory: backend
+        run: node dist/scripts/seed-test-users.js
+
+
+      # =========================
+      # START BACKEND
+      # =========================
+
+      - name: Start backend
+        working-directory: backend
+        run: |
+          nohup npm start > /tmp/bugpilot-backend.log 2>&1 &
+
+
+      - name: Wait for backend
+        run: |
+          for i in {1..30}; do
+
+            if curl -fsS http://127.0.0.1:3000/api/health; then
+              exit 0
+            fi
+
+            sleep 2
+
+          done
+
+          cat /tmp/bugpilot-backend.log
+          exit 1
+
+
+      # =========================
+      # FRONTEND
+      # =========================
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+
+      # =========================
+      # PLAYWRIGHT
+      # =========================
+
+      - name: Install Playwright browsers
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+
+      - name: Run E2E tests
+        working-directory: frontend
+        run: npm run test:e2e
+
+
+      # =========================
+      # REPORT
+      # =========================
+
+      - name: Upload Playwright report
+        if: always()
+
+        uses: actions/upload-artifact@v4
+
+        with:
+          name: playwright-report
+
+          path: frontend/playwright-report/
+
+          retention-days: 7

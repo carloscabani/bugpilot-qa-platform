@@ -7,11 +7,11 @@ test.describe("BugPilot Authentication", () => {
     await page.goto("/login");
 
     await page.getByLabel("Email").fill(
-      "carlos@example.com"
+      "process.env.E2E_ADMIN_EMAIL!"
     );
 
     await page.getByLabel("Password").fill(
-      "123456"
+      "process.env.E2E_ADMIN_PASSWORD!"
     );
 
     await page.getByRole("button", {
@@ -36,7 +36,7 @@ test.describe("BugPilot Authentication", () => {
     await page.goto("/login");
 
     await page.getByLabel("Email").fill(
-      "carlos@example.com"
+      "process.env.E2E_ADMIN_EMAIL!"
     );
 
     await page.getByLabel("Password").fill(
